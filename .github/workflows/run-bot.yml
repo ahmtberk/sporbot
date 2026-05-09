@@ -41,7 +41,7 @@ jobs:
           INPUT_DURATION_MINUTES: ${{ inputs.duration_minutes }}
           AUTO_START: "true"
           PLAYWRIGHT_HEADLESS: "true"
-          PAGE_TIMEOUT_MS: "90000"
+          PAGE_TIMEOUT_MS: "45000"
           NAVIGATION_TIMEOUT_MS: "120000"
           TZ: "Europe/Istanbul"
         run: |

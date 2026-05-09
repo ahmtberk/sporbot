@@ -3,6 +3,7 @@ import html
 import logging
 import os
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -246,6 +247,8 @@ class TelegramControlledSlotService:
                 if not result.ok:
                     self.last_result_text = f"Error: {result.error}"
                     log.error("Check error: %s", result.error)
+                    await bot.send_message(chat_id=chat_id, text=f"Check failed:\n{result.error}")
+                    await self._send_debug_image(bot, chat_id, result.debug_image_path)
                 elif result.sessions:
                     self.last_result_text = f"Found {len(result.sessions)} available session(s)."
                     await bot.send_message(
@@ -277,6 +280,22 @@ class TelegramControlledSlotService:
         finally:
             self.auto_stop_at = None
             log.info("Background checking loop stopped")
+
+    async def _send_debug_image(self, bot, chat_id: int, image_path: str | None) -> None:
+        if not image_path:
+            return
+        path = Path(image_path)
+        if not path.exists():
+            return
+        try:
+            with path.open("rb") as image:
+                await bot.send_photo(
+                    chat_id=chat_id,
+                    photo=image,
+                    caption="Debug screenshot from failed check",
+                )
+        except Exception:
+            log.warning("Could not send debug screenshot", exc_info=True)
 
     def _format_found_message(self, config: RuntimeConfig, sessions: list[dict]) -> str:
         title = f"{html.escape(config.facility_name)} - {html.escape(config.branch_name)}"

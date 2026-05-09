@@ -28,6 +28,8 @@ class CheckResult:
     ok: bool
     sessions: list[dict[str, Any]]
     error: str | None = None
+    debug_image_path: str | None = None
+    debug_html_path: str | None = None
 
 
 def seans_gecmis_mi(tarih_str: str, saat_str: str | None = None) -> bool:
@@ -63,7 +65,7 @@ class SporIstanbulChecker:
         self.tc = os.getenv("SPOR_TC", "")
         self.password = os.getenv("SPOR_SIFRE", "")
         self.headless = os.getenv("PLAYWRIGHT_HEADLESS", "true").lower() not in {"0", "false", "no"}
-        self.page_timeout_ms = int(os.getenv("PAGE_TIMEOUT_MS", "90000"))
+        self.page_timeout_ms = int(os.getenv("PAGE_TIMEOUT_MS", "45000"))
         self.navigation_timeout_ms = int(os.getenv("NAVIGATION_TIMEOUT_MS", "120000"))
 
     async def run_once(self) -> CheckResult:
@@ -102,28 +104,34 @@ class SporIstanbulChecker:
             raise
         except Exception as exc:
             log.exception("Check failed")
+            debug_image_path = None
+            debug_html_path = None
             if page:
-                await self._save_error_artifacts(page, stage)
-            return CheckResult(False, [], f"{stage}: {exc}")
+                debug_image_path, debug_html_path = await self._save_error_artifacts(page, stage)
+            return CheckResult(False, [], f"{stage}: {exc}", debug_image_path, debug_html_path)
         finally:
             if browser:
                 await browser.close()
             await playwright.stop()
 
-    async def _save_error_artifacts(self, page: Page, stage: str) -> None:
+    async def _save_error_artifacts(self, page: Page, stage: str) -> tuple[str | None, str | None]:
+        image_path = "error_page.png"
+        html_path = "error_page.html"
         try:
-            await page.screenshot(path="error_page.png", full_page=True)
+            await page.screenshot(path=image_path, full_page=True)
             html = await page.content()
-            with open("error_page.html", "w", encoding="utf-8") as file:
+            with open(html_path, "w", encoding="utf-8") as file:
                 file.write(html)
             log.info("Saved error artifacts for stage: %s", stage)
+            return image_path, html_path
         except Exception:
             log.warning("Could not save error artifacts", exc_info=True)
+            return None, None
 
     async def _login(self, page: Page) -> None:
         log.info("Logging in to Spor Istanbul")
         await page.goto(URL_GIRIS, wait_until="domcontentloaded", timeout=self.navigation_timeout_ms)
-        await page.wait_for_selector("#txtTCPasaport", state="visible", timeout=self.page_timeout_ms)
+        await self._wait_for_login_form(page)
         await page.fill("#txtTCPasaport", self.tc)
         await page.fill("#txtSifre", self.password)
         await page.click("#btnGirisYap")
@@ -140,6 +148,26 @@ class SporIstanbulChecker:
 
         if "anasayfa" not in page.url and "uyespor" not in page.url:
             raise RuntimeError(f"Login failed. Current URL: {page.url}")
+
+    async def _wait_for_login_form(self, page: Page) -> None:
+        for _ in range(20):
+            if await page.locator("#txtTCPasaport").count() > 0:
+                await page.wait_for_selector("#txtTCPasaport", state="visible", timeout=10000)
+                return
+            await asyncio.sleep(1)
+
+        title = ""
+        body_text = ""
+        try:
+            title = await page.title()
+            body_text = await page.locator("body").inner_text(timeout=3000)
+            body_text = " ".join(body_text.split())[:500]
+        except Exception:
+            pass
+        raise RuntimeError(
+            "Login form did not appear. "
+            f"url={page.url!r} title={title!r} body={body_text!r}"
+        )
 
     async def _open_sessions_page(self, page: Page) -> None:
         log.info("Opening membership sessions page")
