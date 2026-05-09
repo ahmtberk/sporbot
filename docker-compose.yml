@@ -1,0 +1,10 @@
+services:
+  sporbot:
+    build: .
+    env_file:
+      - .env
+    environment:
+      RUNTIME_CONFIG_PATH: /app/data/runtime_config.json
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data

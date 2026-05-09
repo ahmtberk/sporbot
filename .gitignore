@@ -1,0 +1,13 @@
+.env
+runtime_config.json
+data/
+bot.log
+logs/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+debug_full.png
+debug_page.html
+son_kontrol.png

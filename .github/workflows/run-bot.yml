@@ -1,0 +1,48 @@
+name: Run Sporbot On Demand
+
+on:
+  workflow_dispatch:
+    inputs:
+      duration_minutes:
+        description: "How long the bot should run"
+        required: true
+        default: "180"
+      interval_minutes:
+        description: "Check interval in minutes"
+        required: true
+        default: "15"
+
+jobs:
+  run:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Run Telegram controlled bot
+        env:
+          SPOR_TC: ${{ secrets.SPOR_TC }}
+          SPOR_SIFRE: ${{ secrets.SPOR_SIFRE }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEFAULT_FACILITY_NAME: ${{ vars.DEFAULT_FACILITY_NAME || 'HALIC SU SPORLARI MERKEZI' }}
+          DEFAULT_BRANCH_NAME: ${{ vars.DEFAULT_BRANCH_NAME || 'FITNESS' }}
+          INPUT_INTERVAL_MINUTES: ${{ inputs.interval_minutes }}
+          INPUT_DURATION_MINUTES: ${{ inputs.duration_minutes }}
+          AUTO_START: "true"
+          PLAYWRIGHT_HEADLESS: "true"
+        run: |
+          export CHECK_INTERVAL_MIN_SECONDS=$((INPUT_INTERVAL_MINUTES * 60))
+          export CHECK_INTERVAL_MAX_SECONDS=$((INPUT_INTERVAL_MINUTES * 60))
+          export AUTO_STOP_AFTER_SECONDS=$((INPUT_DURATION_MINUTES * 60))
+          python app.py
