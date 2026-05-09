@@ -63,6 +63,8 @@ class SporIstanbulChecker:
         self.tc = os.getenv("SPOR_TC", "")
         self.password = os.getenv("SPOR_SIFRE", "")
         self.headless = os.getenv("PLAYWRIGHT_HEADLESS", "true").lower() not in {"0", "false", "no"}
+        self.page_timeout_ms = int(os.getenv("PAGE_TIMEOUT_MS", "90000"))
+        self.navigation_timeout_ms = int(os.getenv("NAVIGATION_TIMEOUT_MS", "120000"))
 
     async def run_once(self) -> CheckResult:
         if not self.tc or not self.password:
@@ -70,6 +72,8 @@ class SporIstanbulChecker:
 
         playwright = await async_playwright().start()
         browser = None
+        page = None
+        stage = "startup"
         try:
             browser = await playwright.chromium.launch(
                 headless=self.headless,
@@ -80,36 +84,53 @@ class SporIstanbulChecker:
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             )
             page = await context.new_page()
-            page.set_default_timeout(45000)
-            page.set_default_navigation_timeout(60000)
+            page.set_default_timeout(self.page_timeout_ms)
+            page.set_default_navigation_timeout(self.navigation_timeout_ms)
 
+            stage = "login"
             await self._login(page)
+            stage = "open_sessions_page"
             await self._open_sessions_page(page)
+            stage = "click_session_button"
             await self._click_session_button(page)
+            stage = "apply_filters"
             await self._apply_filters_if_available(page)
+            stage = "collect_sessions"
             sessions = await self._collect_available_sessions(page)
             return CheckResult(True, sessions)
         except asyncio.CancelledError:
             raise
         except Exception as exc:
             log.exception("Check failed")
-            return CheckResult(False, [], str(exc))
+            if page:
+                await self._save_error_artifacts(page, stage)
+            return CheckResult(False, [], f"{stage}: {exc}")
         finally:
             if browser:
                 await browser.close()
             await playwright.stop()
 
+    async def _save_error_artifacts(self, page: Page, stage: str) -> None:
+        try:
+            await page.screenshot(path="error_page.png", full_page=True)
+            html = await page.content()
+            with open("error_page.html", "w", encoding="utf-8") as file:
+                file.write(html)
+            log.info("Saved error artifacts for stage: %s", stage)
+        except Exception:
+            log.warning("Could not save error artifacts", exc_info=True)
+
     async def _login(self, page: Page) -> None:
         log.info("Logging in to Spor Istanbul")
-        await page.goto(URL_GIRIS, wait_until="domcontentloaded", timeout=60000)
-        await page.wait_for_selector("#txtTCPasaport", state="visible", timeout=45000)
+        await page.goto(URL_GIRIS, wait_until="domcontentloaded", timeout=self.navigation_timeout_ms)
+        await page.wait_for_selector("#txtTCPasaport", state="visible", timeout=self.page_timeout_ms)
         await page.fill("#txtTCPasaport", self.tc)
         await page.fill("#txtSifre", self.password)
         await page.click("#btnGirisYap")
         try:
             await page.wait_for_url(
                 lambda url: "anasayfa" in str(url) or "uyespor" in str(url),
-                timeout=45000,
+                timeout=self.page_timeout_ms,
             )
         except Exception:
             try:
@@ -122,8 +143,8 @@ class SporIstanbulChecker:
 
     async def _open_sessions_page(self, page: Page) -> None:
         log.info("Opening membership sessions page")
-        await page.goto(URL_SEANSLARIM, wait_until="domcontentloaded", timeout=60000)
-        await page.wait_for_selector("#dtUyeSpor", state="attached", timeout=45000)
+        await page.goto(URL_SEANSLARIM, wait_until="domcontentloaded", timeout=self.navigation_timeout_ms)
+        await page.wait_for_selector("#dtUyeSpor", state="attached", timeout=self.page_timeout_ms)
 
     async def _click_session_button(self, page: Page) -> None:
         buttons = page.locator("a.btn-success")

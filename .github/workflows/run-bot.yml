@@ -41,8 +41,22 @@ jobs:
           INPUT_DURATION_MINUTES: ${{ inputs.duration_minutes }}
           AUTO_START: "true"
           PLAYWRIGHT_HEADLESS: "true"
+          PAGE_TIMEOUT_MS: "90000"
+          NAVIGATION_TIMEOUT_MS: "120000"
+          TZ: "Europe/Istanbul"
         run: |
           export CHECK_INTERVAL_MIN_SECONDS=$((INPUT_INTERVAL_MINUTES * 60))
           export CHECK_INTERVAL_MAX_SECONDS=$((INPUT_INTERVAL_MINUTES * 60))
           export AUTO_STOP_AFTER_SECONDS=$((INPUT_DURATION_MINUTES * 60))
           python app.py
+
+      - name: Upload debug artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sporbot-debug
+          path: |
+            error_page.png
+            error_page.html
+            son_kontrol.png
+          if-no-files-found: ignore
