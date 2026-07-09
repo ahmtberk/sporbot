@@ -1,94 +1,168 @@
-# Sporbot
+# 🤖 SporBot
 
-Sporbot, Spor Istanbul tesislerinde uygun seans olup olmadigini Playwright ile kontrol eden ve Telegram uzerinden yonetilen bir Python botudur.
+An automated Python bot that monitors available **Spor İstanbul** reservation slots using **Playwright** and instantly sends notifications through **Telegram** whenever a matching session becomes available.
 
-> Not: Spor Istanbul, GitHub Actions ve benzeri bulut/veri merkezi tarayicilarinda Cloudflare insan dogrulamasi gosterebiliyor. Bu nedenle ucretsiz ve daha stabil kullanim icin botu kendi bilgisayarinizda calistirmeniz onerilir.
+<p align="left">
+  <img src="https://img.shields.io/badge/Python-3.x-blue?logo=python&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Playwright-Automation-success"/>
+  <img src="https://img.shields.io/badge/Telegram-Bot-26A5E4?logo=telegram"/>
+  <img src="https://img.shields.io/badge/Docker-Supported-2496ED?logo=docker&logoColor=white"/>
+  <img src="https://img.shields.io/badge/License-MIT-green"/>
+</p>
 
-## Ozellikler
+---
 
-- Telegram komutlariyla botu baslatma, durdurma ve durum sorgulama
-- Belirli sure calistirip otomatik durdurma
-- Tesis, brans ve kontrol araligi ayarlarini runtime degistirme
-- Uygun seans bulundugunda Telegram bildirimi gonderme
-- Docker ile calistirma destegi
+# 📖 Overview
 
-## Kurulum
+SporBot automatically checks **Spor İstanbul** reservation slots and notifies users via Telegram when an available session is found.
 
-Python bagimliliklarini yukleyin:
+Instead of manually refreshing the reservation page for hours, the bot continuously monitors availability and alerts the user instantly.
+
+---
+
+# 📸 Screenshot
+
+<p align="center">
+<img src="docs/telegram_notification.jpg" width="350"/>
+</p>
+
+---
+
+# ✨ Features
+
+- 🤖 Automated reservation monitoring
+- 🔔 Instant Telegram notifications
+- ⏱ Configurable checking interval
+- 🏋 Runtime branch selection
+- ⌛ Run for a specified duration
+- 🛑 Start / Stop via Telegram commands
+- 🐳 Docker support
+- ⚙ Runtime configuration without restarting
+
+---
+
+# 🛠 Tech Stack
+
+| Technology | Purpose |
+|------------|---------|
+| Python | Core application |
+| Playwright | Browser automation |
+| Telegram Bot API | Notifications & remote control |
+| Docker | Containerized deployment |
+| Python-dotenv | Environment configuration |
+
+---
+
+# 📂 Project Structure
+
+```
+sporbot/
+│
+├── app.py
+├── checker.py
+├── telegram_service.py
+├── runtime_config.py
+├── bot.py
+├── Dockerfile
+├── docker-compose.yml
+└── .env.example
+```
+
+---
+
+# 🚀 Getting Started
+
+## Clone the repository
+
+```bash
+git clone https://github.com/USERNAME/sporbot.git
+cd sporbot
+```
+
+---
+
+## Install dependencies
 
 ```bash
 pip install -r requirements.txt
 playwright install chromium
 ```
 
-Ornek ortam dosyasini kopyalayip kendi bilgilerinizle doldurun:
+---
+
+## Configure environment variables
+
+Create a `.env` file.
 
 ```bash
 cp .env.example .env
 ```
 
-Windows PowerShell kullaniyorsaniz:
+Example:
 
-```powershell
-Copy-Item .env.example .env
-```
-
-Gerekli temel degiskenler:
-
-```text
+```env
 SPOR_TC=
 SPOR_SIFRE=
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 ```
 
-## Calistirma
+---
 
-Telegram servislerini baslatmak icin:
+## Run
 
 ```bash
 python app.py
 ```
 
-Windows'ta 2 saatlik otomatik kontrol icin `start_sporbot_2h.bat` dosyasini cift tiklayabilirsiniz. Terminal penceresi kapatilirsa bot da durur.
-
-Docker ile calistirmak icin:
+Or using Docker
 
 ```bash
 docker compose up --build
 ```
 
-## Telegram Komutlari
+---
 
-```text
-/start veya /help
-/startbot
-/runfor 180
-/status
-/stopbot
-/setinterval 10 15
-/setbranch FITNESS
-/stopafterfound on
-```
+# 💬 Telegram Commands
 
-## Ayarlar
+| Command | Description |
+|----------|-------------|
+| `/start` | Show help |
+| `/startbot` | Start monitoring |
+| `/stopbot` | Stop monitoring |
+| `/status` | Bot status |
+| `/runfor 180` | Run for a specific duration |
+| `/setinterval 10 15` | Change checking interval |
+| `/setbranch FITNESS` | Change branch |
+| `/stopafterfound on` | Stop after finding a session |
 
-Varsayilan tesis, brans ve kontrol araligi `.env` icinden ayarlanabilir. Calisma sirasinda degistirilen ayarlar `runtime_config.json` dosyasina yazilir. Bu dosya kisiye ozel oldugu icin repoya dahil edilmemelidir.
+---
 
-Detayli kurulum ve gunluk kullanim icin [USAGE.md](USAGE.md) dosyasina bakabilirsiniz.
+# 🔒 Security
 
-## Public Repo Notlari
+Sensitive information is **never committed** to the repository.
 
-- `.env` dosyasini repoya eklemeyin; Telegram tokeni ve Spor Istanbul giris bilgileriniz bu dosyada durur.
-- `runtime_config.json`, `bot.log`, `logs/`, `data/`, ekran goruntuleri ve debug ciktilari repoya eklenmemelidir.
-- `.env.example` yalnizca bos/guvenli ornek degerler icermelidir.
+The following files should remain local:
 
-## Dosya Yapisi
+- `.env`
+- `runtime_config.json`
+- `bot.log`
+- `logs/`
+- `data/`
 
-- `app.py`: Telegram kontrollu servis giris noktasi
-- `telegram_service.py`: Telegram komutlari ve arka plan gorev yonetimi
-- `checker.py`: Playwright tabanli Spor Istanbul kontrol mantigi
-- `runtime_config.py`: Runtime ayarlarinin JSON dosyasinda saklanmasi
-- `bot.py`: Eski lokal dongu scripti, referans amacli tutuluyor
-- `Dockerfile` ve `docker-compose.yml`: Docker calistirma dosyalari
+---
 
+# 📌 Future Improvements
+
+- Multi-user support
+- Multiple branch monitoring
+- Web dashboard
+- Statistics & analytics
+- Desktop GUI
+- Cloud deployment
+
+---
+
+# 📄 License
+
+This project is licensed under the **MIT License**.
